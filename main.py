@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv(override=True)
 OpenAiBaseUrl = os.getenv("OPENAI_BASE_URL")
@@ -19,9 +20,9 @@ def stream(_message, _model):
         print(chunk.content, end="", flush=True)
 
 
-def basic_chat_chain(_message, _model):
-    chain = _model | StrOutputParser()
-    result = chain.invoke(_message)
+def basic_chat_chain(_message, _prompt_template, _model):
+    chain = _prompt_template | _model | StrOutputParser()
+    result = chain.invoke({"question": _message})
     print(result)
 
 
@@ -32,14 +33,16 @@ def print_separator():
 
 
 if __name__ == "__main__":
-    message = [
-        ("human", "hi, tell me about you?"),
-    ]
-
+    prompt_template = ChatPromptTemplate([
+        ("system", "You are a helpful assistant, Please provide answers based on the user's questions."),
+        ("human", "hi, {question}"),
+    ])
     model = init_chat_model(model="gemini-2.5-flash-lite-preview-06-17", model_provider="openai", base_url=OpenAiBaseUrl)
 
-    chat(message, model)
+    question = "hi, tell me about you?"
+
+    chat(question, model)
     print_separator()
-    stream(message, model)
+    stream(question, model)
     print_separator()
-    basic_chat_chain(message, model)
+    basic_chat_chain(question, prompt_template, model)
